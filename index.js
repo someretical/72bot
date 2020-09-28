@@ -21,7 +21,7 @@ const exec = (obj, func = 'send') => {
 };
 
 const checkHealth = async () => {
-	if (mc.health === undefined || mc.food === undefined) return;
+	if (!mc || mc.health === undefined || mc.food === undefined) return;
 	if (mc.health > 19 && mc.food > 8) return;
 
 	try {
