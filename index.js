@@ -72,6 +72,7 @@ const makeResultMessages = (result, hrDiff, input = null) => {
 const connectToHost = async () => {
 	log(`Connecting to ${process.env.MC_HOST}`);
 
+	if (timeout) clearTimeout(timeout);
 	if (lock === true) return log('Aborting connection');
 
 	try {
@@ -271,8 +272,6 @@ const login = async () => {
 					lock = true;
 
 					if (mc) mc.quit();
-					if (timeout) clearTimeout(timeout);
-
 					msg.channel.send('Locked the bot, it should now disconnect.');
 					return;
 				} else if (cmd === 'reconnect') {
@@ -280,10 +279,9 @@ const login = async () => {
 						msg.channel.send('Permission denied.');
 						return;
 					}
+
 					lock = false;
 					if (mc) mc.quit();
-					if (timeout) clearTimeout(timeout);
-
 					msg.channel.send('Reconnecting...');
 					connectToHost();
 					return;
