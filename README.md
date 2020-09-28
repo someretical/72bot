@@ -18,3 +18,11 @@ MC_HOST_IMG=https://constantiam.net/favicon/android-icon-192x192.png
 MC_EMAIL=
 MC_PWD=
 ```
+
+## Create http server
+```js
+require('http').createServer((req, res) => {
+  res.writeHead(200);
+  res.end('ok');
+}).listen(3000);
+```
