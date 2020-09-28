@@ -27,7 +27,7 @@ const checkHealth = async () => {
 	try {
 		await exec({
 			embeds: [new MessageEmbed()
-				.setDescription(codeBlock`Quitting with ${mc.health} health and ${mc.food} hunger points.`)
+				.setDescription(codeBlock`Quitting with ${mc.health} HP and ${mc.food} hunger.`)
 				.setColor('RED')],
 			username: mc.username,
 			avatarURL: `http://cravatar.eu/helmhead/${mc.username}/256.png`,
@@ -35,7 +35,7 @@ const checkHealth = async () => {
 		// eslint-disable-next-line no-empty
 	} catch (e) {}
 
-	log(`Logged out at ${mc.health} hp and ${mc.food} saturation!`);
+	log(`Logged out at ${mc.health} hp and ${mc.food} hunger!`);
 	lock = true;
 	mc.quit();
 };
@@ -215,7 +215,14 @@ const login = async () => {
 		try {
 			if (msg.content.startsWith(process.env.DISCORD_PREFIX)) {
 				const cmd = msg.content.slice(process.env.DISCORD_PREFIX.length).split(/\s+/g)[0];
-				if (cmd === 'tab') {
+				if (cmd === 'ping') {
+					if (!mc || !mc.player) {
+						msg.channel.send('Unable to access mc/mc.player object');
+					}
+
+					msg.channel.send(`Current ping: ${mc.player.ping}ms`);
+					return;
+				} else if (cmd === 'tab') {
 					const players = Object.keys(mc.players).map(p => `\`${p}\``).sort();
 					const chunks = Array(Math.ceil(players.length / 100))
 						.fill()
