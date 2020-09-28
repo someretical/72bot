@@ -5,14 +5,16 @@ Feel free to self host if you know how to make it work
 
 ## Environment configuration values
 ```ini
-# stringified json arrays
-WEBHOOKS=[{id:"id",token:"token"}]
-WHITELISTED_CHANNELS=["id"]
-WHITELISTED_USERS=["id"]
-
-# strings
+# discord
+WEBHOOKS=[{"id":"","token":""}]
+WHITELISTED_CHANNELS=["746240721085792357","747374375694762005"]
+WHITELISTED_USERS=[]
 DISCORD_TOKEN=
-HOST=
+DISCORD_PREFIX=.
+
+# minecraft
+MC_HOST=constantiam.net
+MC_HOST_IMG=https://constantiam.net/favicon/android-icon-192x192.png
 MC_EMAIL=
 MC_PWD=
 ```
