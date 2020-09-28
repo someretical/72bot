@@ -96,7 +96,7 @@ const connectToHost = async () => {
 		host: process.env.MC_HOST,
 		username: process.env.MC_EMAIL,
 		password: process.env.MC_PWD,
-		hideErrors: true,
+		hideErrors: false,
 	});
 
 	mc.on('login', async () => {
