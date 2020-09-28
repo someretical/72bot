@@ -1,0 +1,23 @@
+{
+	"name": "72bot",
+	"version": "1.0.0",
+	"description": "",
+	"main": "index.js",
+	"dependencies": {
+		"common-tags": "^1.8.0",
+		"discord.js": "^12.3.1",
+		"dotenv": "^8.2.0",
+		"mineflayer": "^2.28.1",
+		"pm2": "^4.4.1"
+	},
+	"devDependencies": {
+		"eslint": "^7.7.0"
+	},
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"dev": "nodemon -r dotenv/config index.js",
+		"start": "pm2 start pm2.config.js"
+	},
+	"author": "someretical",
+	"license": "MIT"
+}
