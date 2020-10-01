@@ -21,7 +21,7 @@ const exec = (obj, func = 'send') => {
 };
 
 const checkHealth = async () => {
-	if (!mc || mc.health === undefined || mc.food === undefined) return;
+	if (mc.health === undefined || mc.food === undefined) return;
 	if (mc.health > 19 && mc.food > 8) return;
 
 	try {
@@ -217,10 +217,6 @@ const login = async () => {
 			if (msg.content.startsWith(process.env.DISCORD_PREFIX)) {
 				const cmd = msg.content.slice(process.env.DISCORD_PREFIX.length).split(/\s+/g)[0];
 				if (cmd === 'ping') {
-					if (!mc || !mc.player) {
-						msg.channel.send('Unable to access mc/mc.player object');
-					}
-
 					msg.channel.send(`Current ping: ${mc.player.ping}ms`);
 					return;
 				} else if (cmd === 'tab') {
@@ -242,12 +238,12 @@ const login = async () => {
 				} else if (cmd === 'entitylist') {
 					const mobTypes = new Set();
 					const values = Object.values(mc.entities);
-					values.map(e => mobTypes.add(e.mobType || e.objectType || e.type[0].toUpperCase() + e.type.substring(1)));
+					values.map(e => mobTypes.add((e.mobType || e.objectType || e.type[0].toUpperCase()) + e.type.substring(1)));
 					const formatted = Array
 						.from(mobTypes.values())
 						.map(name =>
 							`• ${name} count: ${values.filter(e =>
-								(e.mobType || e.objectType || e.type[0].toUpperCase() + e.type.substring(1)) === name,
+								((e.mobType || e.objectType || e.type[0].toUpperCase()) + e.type.substring(1)) === name,
 							).length}`,
 						);
 					const chunks = Array(Math.ceil(formatted.length / 15))
@@ -317,7 +313,7 @@ const login = async () => {
 				msg.channel.send('You have to be whitelisted to send a message!');
 				return;
 			}
-			if (msg.content.startsWith('/kill') && msg.author.id !== ownerID) {
+			if (/^\/kill/i.test(msg.content) && msg.author.id !== ownerID) {
 				msg.channel.send('Permission denied.');
 				return;
 			}
