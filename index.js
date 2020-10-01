@@ -91,6 +91,7 @@ const connectToHost = async () => {
 		}
 
 		timeout = setTimeout(connectToHost, 10000);
+		return undefined;
 	}
 
 	mc = mineflayer.createBot({
@@ -161,7 +162,6 @@ const connectToHost = async () => {
 	});
 
 	mc.on('end', async () => {
-		mc = undefined;
 		log(`Disconnected from ${process.env.MC_HOST}`);
 
 		try {
@@ -332,8 +332,3 @@ const login = async () => {
 };
 
 login();
-
-require('http').createServer((req, res) => {
-	res.writeHead(200);
-	res.end('ok');
-}).listen(3000);
