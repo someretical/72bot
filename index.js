@@ -281,12 +281,12 @@ const login = async () => {
 						return;
 					}
 
+					const percent = (mc.experience.progress * 100).toFixed(2);
 					const embed = new MessageEmbed()
 						.setTitle('XP Stats')
 						.setDescription(tags.stripIndents`
-							• Current level: ${mc.experience.level.toLocaleString()}
+							• Current level: ${mc.experience.level.toLocaleString()} (${percent}% complete)
 							• Total experience points: ${mc.experience.points.toLocaleString()}
-							• Current level: ${mc.experience.progress * 100}% complete
 						`)
 						.setColor('GREY');
 
