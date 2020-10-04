@@ -217,9 +217,19 @@ const login = async () => {
 			if (msg.content.startsWith(process.env.DISCORD_PREFIX)) {
 				const cmd = msg.content.slice(process.env.DISCORD_PREFIX.length).split(/\s+/g)[0];
 				if (cmd === 'ping') {
+					if (!mc) {
+						msg.channel.send('Could not access `mc` object!');
+						return;
+					}
+
 					msg.channel.send(`Current ping: ${mc.player.ping}ms`);
 					return;
 				} else if (cmd === 'tab') {
+					if (!mc) {
+						msg.channel.send('Could not access `mc` object!');
+						return;
+					}
+
 					const players = Object.keys(mc.players).map(p => `\`${p}\``).sort();
 					const chunks = Array(Math.ceil(players.length / 100))
 						.fill()
@@ -236,6 +246,11 @@ const login = async () => {
 					});
 					return;
 				} else if (cmd === 'entitylist') {
+					if (!mc) {
+						msg.channel.send('Could not access `mc` object!');
+						return;
+					}
+
 					const mobTypes = new Set();
 					const values = Object.values(mc.entities);
 					values.map(e => mobTypes.add((e.mobType || e.objectType || e.type[0].toUpperCase()) + e.type.substring(1)));
@@ -259,6 +274,23 @@ const login = async () => {
 
 						return msg.channel.send(embed);
 					});
+					return;
+				} else if (cmd === 'xp') {
+					if (!mc) {
+						msg.channel.send('Could not access `mc` object!');
+						return;
+					}
+
+					const embed = new MessageEmbed()
+						.setTitle('XP Stats')
+						.setDescription(tags.stripIndents`
+							• Current level: ${mc.experience.level.toLocaleString()}
+							• Total experience points: ${mc.experience.points.toLocaleString()}
+							• Current level: ${mc.experience.progress * 100}% complete
+						`)
+						.setColor('GREY');
+
+					msg.channel.send(embed);
 					return;
 				} else if (cmd === 'lock') {
 					if (msg.author.id !== ownerID) {
