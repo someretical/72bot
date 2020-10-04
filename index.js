@@ -253,12 +253,12 @@ const login = async () => {
 
 					const mobTypes = new Set();
 					const values = Object.values(mc.entities);
-					values.map(e => mobTypes.add((e.mobType || e.objectType || e.type[0].toUpperCase()) + e.type.substring(1)));
+					values.map(e => mobTypes.add(e.mobType || e.objectType || (e.type[0].toUpperCase() + e.type.substring(1))));
 					const formatted = Array
 						.from(mobTypes.values())
 						.map(name =>
 							`• ${name} count: ${values.filter(e =>
-								((e.mobType || e.objectType || e.type[0].toUpperCase()) + e.type.substring(1)) === name,
+								(e.mobType || e.objectType || (e.type[0].toUpperCase() + e.type.substring(1))) === name,
 							).length}`,
 						);
 					const chunks = Array(Math.ceil(formatted.length / 15))
