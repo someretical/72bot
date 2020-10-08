@@ -150,6 +150,15 @@ const connectToHost = async () => {
 			return;
 		}
 
+		const server = str.match(/^\[server\] (.+)$/i) || [];
+		if (server[2]) {
+			try {
+				await exec({ embeds: [new MessageEmbed().setDescription(codeBlock(server[2])).setColor('ORANGE')] });
+				// eslint-disable-next-line no-empty
+			} catch (e) {}
+			return;
+		}
+
 		try {
 			await exec({
 				embeds: [new MessageEmbed()
