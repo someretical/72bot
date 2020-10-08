@@ -151,9 +151,9 @@ const connectToHost = async () => {
 		}
 
 		const server = str.match(/^\[server\] (.+)$/i) || [];
-		if (server[2]) {
+		if (server[1]) {
 			try {
-				await exec({ embeds: [new MessageEmbed().setDescription(codeBlock(server[2])).setColor('ORANGE')] });
+				await exec({ embeds: [new MessageEmbed().setDescription(codeBlock(server[1])).setColor('ORANGE')] });
 				// eslint-disable-next-line no-empty
 			} catch (e) {}
 			return;
