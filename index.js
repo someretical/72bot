@@ -6,22 +6,28 @@ const { Client, MessageEmbed, splitMessage, WebhookClient } = require('discord.j
 const mineflayer = require('mineflayer');
 const users = new Set(JSON.parse(process.env.WHITELISTED_USERS));
 const channels = new Set(JSON.parse(process.env.WHITELISTED_CHANNELS));
-const hooks = [];
-for (const { id, token } of JSON.parse(process.env.WEBHOOKS)) hooks.push(new WebhookClient(id, token));
-let mc, bot, ownerID, timeout, lock = false, dcLock = false, lastResult = null;
+const hooks = JSON.parse(process.env.WEBHOOKS).map(hook => new WebhookClient(hook.id, hook.token));
 
 const codeBlock = str => `\`\`\`\n${str.replace(/`/g, '\\`')}\n\`\`\``;
 const log = str => console.log(`[${new Date()}] ${str}`);
 const ping = require('util').promisify(require('minecraft-protocol').ping);
-
 const exec = (obj, func = 'send') => {
 	const promises = [];
-	for (const hook of hooks) promises.push(hook[func](obj));
+	hooks.map(hook => promises.push(hook[func](obj)));
 	return Promise.all(promises);
 };
 
+let mc,
+	bot,
+	ownerID,
+	timeout,
+	lock = false,
+	dcLock = false,
+	lastResult = null;
+
+
 const checkHealth = async () => {
-	if (mc.health === undefined || mc.food === undefined) return;
+	if (!mc || !mc.health || !mc.food) return;
 	if (mc.health > 19 && mc.food > 8) return;
 
 	try {
@@ -32,8 +38,9 @@ const checkHealth = async () => {
 			username: mc.username,
 			avatarURL: `http://cravatar.eu/helmhead/${mc.username}/256.png`,
 		});
-		// eslint-disable-next-line no-empty
-	} catch (e) {}
+	} catch (e) {
+		log(e);
+	}
 
 	log(`Logged out at ${mc.health} hp and ${mc.food} hunger!`);
 	lock = true;
@@ -86,8 +93,9 @@ const connectToHost = async () => {
 				await exec(new MessageEmbed()
 					.setDescription(`${process.env.MC_HOST} is down. The bot will attempt to reconnect in the background.`)
 					.setColor('RED'));
-			// eslint-disable-next-line no-empty
-			} catch (e) {}
+			} catch (e) {
+				log(e);
+			}
 		}
 
 		timeout = setTimeout(connectToHost, 10000);
@@ -111,10 +119,11 @@ const connectToHost = async () => {
 					.setDescription(`Logged into ${process.env.MC_HOST} as \`${mc.username}\`.`)
 					.setColor('BLURPLE')],
 				username: mc.username,
-				avatarURL: `http://cravatar.eu/helmhead/${mc.username}256.png`,
+				avatarURL: `http://cravatar.eu/helmhead/${mc.username}/256.png`,
 			});
-		// eslint-disable-next-line no-empty
-		} catch (e) {}
+		} catch (e) {
+			log(e);
+		}
 	});
 
 	mc.on('spawn', checkHealth);
@@ -131,8 +140,9 @@ const connectToHost = async () => {
 					username: process.env.HOST_NAME,
 					embeds: [new MessageEmbed().setColor('GREY').setDescription(codeBlock(str))],
 				});
-			// eslint-disable-next-line no-empty
-			} catch (e) {}
+			} catch (e) {
+				log(e);
+			}
 			return;
 		}
 
@@ -145,8 +155,9 @@ const connectToHost = async () => {
 					username: message[1],
 					avatarURL: `http://cravatar.eu/helmhead/${message[1]}/256.png`,
 				});
-			// eslint-disable-next-line no-empty
-			} catch (e) {}
+			} catch (e) {
+				log(e);
+			}
 			return;
 		}
 
@@ -154,8 +165,9 @@ const connectToHost = async () => {
 		if (server[1]) {
 			try {
 				await exec({ embeds: [new MessageEmbed().setDescription(codeBlock(server[1])).setColor('ORANGE')] });
-				// eslint-disable-next-line no-empty
-			} catch (e) {}
+			} catch (e) {
+				log(e);
+			}
 			return;
 		}
 
@@ -166,8 +178,9 @@ const connectToHost = async () => {
 					.setColor([0, 170, 170])],
 				username: process.env.MC_HOST,
 			});
-		// eslint-disable-next-line no-empty
-		} catch (e) {}
+		} catch (e) {
+			log(e);
+		}
 	});
 
 	mc.on('end', async () => {
@@ -181,8 +194,9 @@ const connectToHost = async () => {
 				username: process.env.MC_HOST,
 				avatarURL: process.env.MC_HOST_IMG,
 			});
-		// eslint-disable-next-line no-empty
-		} catch (e) {}
+		} catch (e) {
+			log(e);
+		}
 
 		timeout = setTimeout(connectToHost, 10000);
 	});
@@ -194,7 +208,7 @@ const login = async () => {
 	bot = new Client({ retryLimit: 0 });
 
 	try {
-		await exec({ name: process.env.MC_HOST, avatar: process.env.MC_HOST_IMG }, 'edit');
+		// Await exec({ name: process.env.MC_HOST, avatar: process.env.MC_HOST_IMG }, 'edit');
 		await bot.login();
 	} catch (err) {
 		log('Failed to log in/edit webhooks, retrying in 30 seconds...');
@@ -222,147 +236,152 @@ const login = async () => {
 	bot.on('message', msg => {
 		if (!channels.has(msg.channel.id) || !msg.content || msg.author.bot) return;
 
-		try {
-			if (msg.content.startsWith(process.env.DISCORD_PREFIX)) {
-				const cmd = msg.content.slice(process.env.DISCORD_PREFIX.length).split(/\s+/g)[0];
-				if (cmd === 'ping') {
-					if (!mc) {
-						msg.channel.send('Could not access `mc` object!');
-						return;
-					}
-
-					msg.channel.send(`Current ping: ${mc.player.ping}ms`);
-					return;
-				} else if (cmd === 'tab') {
-					if (!mc) {
-						msg.channel.send('Could not access `mc` object!');
-						return;
-					}
-
-					const players = Object.keys(mc.players).map(p => `\`${p}\``).sort();
-					const chunks = Array(Math.ceil(players.length / 100))
-						.fill()
-						.map((_, i) => players.slice(i * 100, (i * 100) + 100));
-
-					chunks.map((chunk, index) => {
-						const embed = new MessageEmbed()
-							.setDescription(chunk.join(', '))
-							.setColor('GREY');
-
-						if (index === 0) embed.setTitle(`Tab list - ${players.length} player(s)`);
-
-						return msg.channel.send(embed);
-					});
-					return;
-				} else if (cmd === 'entitylist') {
-					if (!mc) {
-						msg.channel.send('Could not access `mc` object!');
-						return;
-					}
-
-					const mobTypes = new Set();
-					const values = Object.values(mc.entities);
-					values.map(e => mobTypes.add(e.mobType || e.objectType || (e.type[0].toUpperCase() + e.type.substring(1))));
-					const formatted = Array
-						.from(mobTypes.values())
-						.map(name =>
-							`• ${name} count: ${values.filter(e =>
-								(e.mobType || e.objectType || (e.type[0].toUpperCase() + e.type.substring(1))) === name,
-							).length}`,
-						);
-					const chunks = Array(Math.ceil(formatted.length / 15))
-						.fill()
-						.map((_, i) => formatted.slice(i * 15, (i * 15) + 15));
-
-					chunks.map((chunk, index) => {
-						const embed = new MessageEmbed()
-							.setDescription(chunk.join('\n'))
-							.setColor('GREY');
-
-						if (index === 0) embed.setTitle(`Entity list - ${values.length} entity(s)`);
-
-						return msg.channel.send(embed);
-					});
-					return;
-				} else if (cmd === 'xp') {
-					if (!mc) {
-						msg.channel.send('Could not access `mc` object!');
-						return;
-					}
-
-					const percent = (mc.experience.progress * 100).toFixed(2);
-					const embed = new MessageEmbed()
-						.setTitle('XP Stats')
-						.setDescription(tags.stripIndents`
-							• Current level: ${mc.experience.level.toLocaleString()} (${percent}% complete)
-							• Total experience points: ${mc.experience.points.toLocaleString()}
-						`)
-						.setColor('GREY');
-
-					msg.channel.send(embed);
-					return;
-				} else if (cmd === 'lock') {
-					if (msg.author.id !== ownerID) {
-						msg.channel.send('Permission denied.');
-						return;
-					}
-					lock = true;
-
-					if (mc) mc.quit();
-					msg.channel.send('Locked the bot, it should now disconnect.');
-					return;
-				} else if (cmd === 'reconnect') {
-					if (msg.author.id !== ownerID) {
-						msg.channel.send('Permission denied.');
-						return;
-					}
-
-					lock = false;
-					if (mc) mc.quit();
-					msg.channel.send('Reconnecting...');
-					connectToHost();
-					return;
-				} else if (cmd === 'eval') {
-					if (msg.author.id !== ownerID) {
-						msg.channel.send('Permission denied.');
-						return;
-					}
-
-					const code = msg.content.slice(process.env.DISCORD_PREFIX.length + 4);
-					let hrDiff;
-					try {
-						const hrStart = process.hrtime();
-						lastResult = eval(code);
-						hrDiff = process.hrtime(hrStart);
-					} catch (err) {
-						msg.channel.send(`\`\`\`js\n${err}\n\`\`\``);
-						return;
-					}
-
-					const result = makeResultMessages(lastResult, hrDiff, code);
-					if (Array.isArray(result)) {
-						result.map(item => msg.channel.send(item));
-					} else {
-						msg.channel.send(result);
-					}
+		if (msg.content.startsWith(process.env.DISCORD_PREFIX)) {
+			const cmd = msg.content.slice(process.env.DISCORD_PREFIX.length).split(/\s+/g)[0];
+			if (cmd === 'ping') {
+				if (!mc || !mc.player) {
+					msg.channel.send('Could not access `mc.player` object!');
 					return;
 				}
-			}
 
-			if (!mc || !mc.game) return;
-			if (!users.has(msg.author.id) && msg.author.id !== ownerID) {
-				msg.channel.send('You have to be whitelisted to send a message!');
+				msg.channel.send(`Current ping: ${mc.player.ping}ms`);
+				return;
+			} else if (cmd === 'tab') {
+				if (!mc || !mc.players) {
+					msg.channel.send('Could not access `mc.players` object!');
+					return;
+				}
+
+				const players = Object.keys(mc.players).map(p => `\`${p}\``).sort();
+				const chunks = Array(Math.ceil(players.length / 100))
+					.fill()
+					.map((_, i) => players.slice(i * 100, (i * 100) + 100));
+
+				chunks.map((chunk, index) => {
+					const embed = new MessageEmbed()
+						.setDescription(chunk.join(', '))
+						.setColor('GREY');
+
+					if (index === 0) embed.setTitle(`Tab list - ${players.length} player(s)`);
+
+					return msg.channel.send(embed);
+				});
+				return;
+			} else if (cmd === 'entitylist') {
+				if (!mc || !mc.entities) {
+					msg.channel.send('Could not access `mc.entities` object!');
+					return;
+				}
+
+				const mobTypes = new Set();
+				const values = Object.values(mc.entities);
+				values.map(e => mobTypes.add(e.mobType || e.objectType || (e.type[0].toUpperCase() + e.type.substring(1))));
+				const formatted = Array
+					.from(mobTypes.values())
+					.map(name =>
+						`• ${name} count: ${values.filter(e =>
+							(e.mobType || e.objectType || (e.type[0].toUpperCase() + e.type.substring(1))) === name,
+						).length}`,
+					);
+				const chunks = Array(Math.ceil(formatted.length / 15))
+					.fill()
+					.map((_, i) => formatted.slice(i * 15, (i * 15) + 15));
+
+				chunks.map((chunk, index) => {
+					const embed = new MessageEmbed()
+						.setDescription(chunk.join('\n'))
+						.setColor('GREY');
+
+					if (index === 0) embed.setTitle(`Entity list - ${values.length} entity(s)`);
+
+					return msg.channel.send(embed);
+				});
+				return;
+			} else if (cmd === 'xp') {
+				if (!mc || !mc.experience) {
+					msg.channel.send('Could not access `mc.experience` object!');
+					return;
+				}
+
+				const percent = (mc.experience.progress * 100).toFixed(2);
+				const embed = new MessageEmbed()
+					.setTitle('XP Stats')
+					.setDescription(tags.stripIndents`
+						• Current level: ${mc.experience.level.toLocaleString()} (${percent}% complete)
+						• Total experience points: ${mc.experience.points.toLocaleString()}
+					`)
+					.setColor('GREY');
+
+				msg.channel.send(embed);
+				return;
+			} else if (cmd === 'lock') {
+				if (msg.author.id !== ownerID) {
+					msg.channel.send('Permission denied.');
+					return;
+				}
+				lock = true;
+
+				if (mc) mc.quit();
+				msg.channel.send('Locked the bot, it should now disconnect.');
+				return;
+			} else if (cmd === 'reconnect') {
+				if (msg.author.id !== ownerID) {
+					msg.channel.send('Permission denied.');
+					return;
+				}
+
+				msg.channel.send('Reconnecting... (This could take up to 10 seconds)');
+				lock = false;
+
+				if (mc) {
+					mc.quit();
+				} else {
+					connectToHost();
+				}
+				return;
+			} else if (cmd === 'eval') {
+				if (msg.author.id !== ownerID) {
+					msg.channel.send('Permission denied.');
+					return;
+				}
+
+				const code = msg.content.slice(process.env.DISCORD_PREFIX.length + 4);
+				let hrDiff;
+				try {
+					const hrStart = process.hrtime();
+					lastResult = eval(code);
+					hrDiff = process.hrtime(hrStart);
+				} catch (err) {
+					msg.channel.send(`\`\`\`js\n${err}\n\`\`\``);
+					return;
+				}
+
+				const result = makeResultMessages(lastResult, hrDiff, code);
+				if (Array.isArray(result)) {
+					result.map(item => msg.channel.send(item));
+				} else {
+					msg.channel.send(result);
+				}
 				return;
 			}
-			if (/^\/kill/i.test(msg.content) && msg.author.id !== ownerID) {
-				msg.channel.send('Permission denied.');
-				return;
-			}
-
-			mc.chat(msg.content);
-		} catch (err) {
-			msg.channel.send(`An error has occurred\n\n\`\`\`js\n${err.stack}\n\`\`\``);
 		}
+
+		if (!mc || !mc.game) {
+			msg.react('❌');
+			return;
+		}
+
+		if (!users.has(msg.author.id) && msg.author.id !== ownerID) {
+			msg.channel.send('You have to be whitelisted to send a message!');
+			return;
+		}
+
+		if (/^\/kill/i.test(msg.content) && msg.author.id !== ownerID) {
+			msg.channel.send('Permission denied.');
+			return;
+		}
+
+		mc.chat(msg.content);
 	});
 
 	return undefined;
