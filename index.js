@@ -333,11 +333,9 @@ const login = async () => {
 				msg.channel.send('Reconnecting... (This could take up to 10 seconds)');
 				lock = false;
 
-				if (mc) {
-					mc.quit();
-				} else {
-					connectToHost();
-				}
+				if (mc) mc.quit();
+				if (timeout) clearTimeout(timeout);
+				connectToHost();
 				return;
 			} else if (cmd === 'eval') {
 				if (msg.author.id !== ownerID) {
