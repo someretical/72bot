@@ -273,16 +273,24 @@ const login = async () => {
 					return;
 				}
 
-				const mobTypes = new Set();
-				const values = Object.values(mc.entities);
-				values.map(e => mobTypes.add(e.mobType || e.objectType || (e.type[0].toUpperCase() + e.type.substring(1))));
-				const formatted = Array
-					.from(mobTypes.values())
-					.map(name =>
-						`• ${name} count: ${values.filter(e =>
-							(e.mobType || e.objectType || (e.type[0].toUpperCase() + e.type.substring(1))) === name,
-						).length}`,
-					);
+				const entities = {};
+				const entityList = Object.values(mc.entities);
+				entityList.forEach(e => {
+					const t = e.type === 'mob' ? e.mobType :
+						e.type === 'object' ? e.objectType : e.type.toString();
+
+					if (!entities[t]) {
+						entities[t] = 1;
+					} else {
+						entities[t]++;
+					}
+				});
+
+				const formatted = [];
+				for (const type in entities) {
+					formatted.push(`• ${type[0].toUpperCase() + type.substring(1)} count: ${entities[type]}`);
+				}
+
 				const chunks = Array(Math.ceil(formatted.length / 15))
 					.fill()
 					.map((_, i) => formatted.slice(i * 15, (i * 15) + 15));
@@ -292,7 +300,7 @@ const login = async () => {
 						.setDescription(chunk.join('\n'))
 						.setColor('GREY');
 
-					if (index === 0) embed.setTitle(`Entity list - ${values.length} entity(s)`);
+					if (index === 0) embed.setTitle(`Entity list - ${entityList.length} entity(s)`);
 
 					return msg.channel.send(embed);
 				});
