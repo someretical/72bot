@@ -27,7 +27,7 @@ let mc,
 
 
 const checkHealth = async () => {
-	if (!mc || !mc.health || !mc.food) return;
+	if (!mc || Number.isNaN(mc.health) || Number.isNaN(mc.food)) return;
 	if (mc.health > 19 && mc.food > 8) return;
 
 	try {
