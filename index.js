@@ -270,7 +270,7 @@ const login = async () => {
 				chunks.map((chunk, index) => {
 					const embed = new MessageEmbed()
 						.setDescription(chunk.join(', '))
-						.setColor('GREY');
+						.setColor('ORANGE');
 
 					if (index === 0) embed.setTitle(`Tab list - ${players.length} player(s)`);
 
@@ -314,7 +314,7 @@ const login = async () => {
 				chunks.map((chunk, index) => {
 					const embed = new MessageEmbed()
 						.setDescription(chunk.join('\n'))
-						.setColor('GREY');
+						.setColor('ORANGE');
 
 					if (index === 0) embed.setTitle(`Entity list - ${entityList.length} entity(s)`);
 
@@ -335,7 +335,7 @@ const login = async () => {
 						• Current level: ${mc.experience.level.toLocaleString()} (${percent}% complete)
 						• Total experience points: ${mc.experience.points.toLocaleString()}
 					`)
-					.setColor('GREY');
+					.setColor('ORANGE');
 
 				msg.channel.send(embed);
 				return;
