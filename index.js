@@ -320,7 +320,7 @@ const login = async () => {
 				});
 				return;
 			} else if (cmd === 'xp') {
-				if (!mc || !mc.experience || mc.experience.level === undefined || mc.experience.points === undefined) {
+				if (!mc || !mc.experience || Number.isNaN(mc.experience.level) || Number.isNaN(mc.experience.points)) {
 					msg.channel.send('Could not access `mc.experience` object or its properties!');
 					return;
 				}
