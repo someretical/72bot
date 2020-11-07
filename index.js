@@ -28,13 +28,15 @@ let mc,
 
 
 const checkHealth = async () => {
-	if (!mc || Number.isNaN(mc.health) || Number.isNaN(mc.food)) return;
+	const health = mc.health;
+	const food = mc.food;
+	if (!mc || Number.isNaN(parseInt(health)) || Number.isNaN(parseInt(food))) return;
 	if (mc.health > 19 && mc.food > 8) return;
 
 	try {
 		await exec({
 			embeds: [new MessageEmbed()
-				.setDescription(codeBlock`Quitting with ${mc.health} HP and ${mc.food} hunger.`)
+				.setDescription(`Quitting with ${health} HP and ${food} hunger.`)
 				.setColor('RED')],
 			username: mc.username,
 			avatarURL: `http://cravatar.eu/helmhead/${mc.username}/256.png`,
@@ -43,7 +45,7 @@ const checkHealth = async () => {
 		log(e);
 	}
 
-	log(`Logged out at ${mc.health} hp and ${mc.food} hunger!`);
+	log(`Logged out at ${health} HP and ${food} hunger!`);
 	lock = true;
 	mc.quit();
 };
@@ -337,6 +339,9 @@ const login = async () => {
 
 				msg.channel.send(embed);
 				return;
+			} else if (cmd === 'var') {
+				msg.channel.send(codeBlock(`connected: ${connected}\ndcLock: ${dcLock}\nlock: ${lock}`));
+				return;
 			} else if (cmd === 'lock') {
 				if (msg.author.id !== ownerID) {
 					msg.channel.send('Permission denied.');
@@ -403,6 +408,7 @@ const login = async () => {
 		}
 
 		mc.chat(msg.content);
+		msg.react('✅');
 	});
 
 	return undefined;
