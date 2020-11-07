@@ -21,6 +21,7 @@ let mc,
 	bot,
 	ownerID,
 	timeout,
+	connected = false,
 	lock = false,
 	dcLock = false,
 	lastResult = null;
@@ -77,17 +78,16 @@ const makeResultMessages = (result, hrDiff, input = null) => {
 };
 
 const connectToHost = async () => {
-	log(`Connecting to ${process.env.MC_HOST}`);
-
+	if (!dcLock) log(`Connecting to ${process.env.MC_HOST}...`);
 	if (timeout) clearTimeout(timeout);
-	if (lock === true) return log('Aborting connection');
+	if (lock === true) return log('Aborting connection due to active lock!');
 
 	try {
 		await ping({ host: process.env.MC_HOST });
 	} catch (err) {
 		if (!dcLock) {
 			dcLock = true;
-			log(`${process.env.MC_HOST} is down. Reconnecting in 10 seconds...`);
+			log(`${process.env.MC_HOST} is down. The bot will attempt to reconnect in the background.`);
 
 			try {
 				await exec(new MessageEmbed()
@@ -111,6 +111,7 @@ const connectToHost = async () => {
 
 	mc.on('login', async () => {
 		log(`Logged into ${process.env.MC_HOST} as ${mc.username}.`);
+		connected = true;
 		dcLock = false;
 
 		try {
@@ -184,6 +185,7 @@ const connectToHost = async () => {
 	});
 
 	mc.on('end', async () => {
+		connected = false;
 		log(`Disconnected from ${process.env.MC_HOST}`);
 
 		try {
@@ -239,8 +241,8 @@ const login = async () => {
 		if (msg.content.startsWith(process.env.DISCORD_PREFIX)) {
 			const cmd = msg.content.slice(process.env.DISCORD_PREFIX.length).split(/\s+/g)[0];
 			if (cmd === 'ping') {
-				if (!mc || !mc.player) {
-					msg.channel.send('Could not access `mc.player` object!');
+				if (!mc || !mc.player || mc.player.ping === undefined) {
+					msg.channel.send('Could not access `mc.player.ping` property!');
 					return;
 				}
 
@@ -253,6 +255,12 @@ const login = async () => {
 				}
 
 				const players = Object.keys(mc.players).map(p => `\`${p}\``).sort();
+
+				if (!players.length) {
+					msg.channel.send('No players were found.');
+					return;
+				}
+
 				const chunks = Array(Math.ceil(players.length / 100))
 					.fill()
 					.map((_, i) => players.slice(i * 100, (i * 100) + 100));
@@ -275,6 +283,12 @@ const login = async () => {
 
 				const entities = {};
 				const entityList = Object.values(mc.entities);
+
+				if (!entityList.length) {
+					msg.channel.send('No entities were found.');
+					return;
+				}
+
 				entityList.forEach(e => {
 					const t = e.type === 'mob' ? e.mobType :
 						e.type === 'object' ? e.objectType : e.type.toString();
@@ -306,8 +320,8 @@ const login = async () => {
 				});
 				return;
 			} else if (cmd === 'xp') {
-				if (!mc || !mc.experience) {
-					msg.channel.send('Could not access `mc.experience` object!');
+				if (!mc || !mc.experience || mc.experience.level === undefined || mc.experience.points === undefined) {
+					msg.channel.send('Could not access `mc.experience` object or its properties!');
 					return;
 				}
 
@@ -329,8 +343,8 @@ const login = async () => {
 				}
 				lock = true;
 
-				if (mc) mc.quit();
-				msg.channel.send('Locked the bot, it should now disconnect.');
+				if (connected) mc.quit();
+				msg.channel.send('Locked the bot, it should now disconnect (given that it is connected).');
 				return;
 			} else if (cmd === 'reconnect') {
 				if (msg.author.id !== ownerID) {
@@ -338,10 +352,10 @@ const login = async () => {
 					return;
 				}
 
-				msg.channel.send('Reconnecting... (This could take up to 10 seconds)');
+				msg.channel.send('Reconnecting...');
 				lock = false;
 
-				if (mc) mc.quit();
+				if (connected) mc.quit();
 				if (timeout) clearTimeout(timeout);
 				connectToHost();
 				return;
@@ -372,7 +386,7 @@ const login = async () => {
 			}
 		}
 
-		if (!mc || !mc.game) {
+		if (!connected) {
 			msg.react('❌');
 			return;
 		}
