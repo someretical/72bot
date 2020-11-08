@@ -350,6 +350,7 @@ const login = async () => {
 				lock = true;
 
 				if (connected) mc.quit();
+				log('Locked bot via chat command.');
 				msg.channel.send('Locked the bot, it should now disconnect (given that it is connected).');
 				return;
 			} else if (cmd === 'reconnect') {
@@ -357,9 +358,10 @@ const login = async () => {
 					msg.channel.send('Permission denied.');
 					return;
 				}
+				lock = false;
 
 				msg.channel.send('Reconnecting...');
-				lock = false;
+				log('Reconnecting via chat command.');
 
 				if (connected) mc.quit();
 
