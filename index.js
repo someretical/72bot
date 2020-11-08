@@ -8,7 +8,7 @@ const users = new Set(JSON.parse(process.env.WHITELISTED_USERS));
 const channels = new Set(JSON.parse(process.env.WHITELISTED_CHANNELS));
 const hooks = JSON.parse(process.env.WEBHOOKS).map(hook => new WebhookClient(hook.id, hook.token));
 
-const codeBlock = str => `\`\`\`\n${str.replace(/`/g, '\\`')}\n\`\`\``;
+const codeBlock = str => `\`\`\`\n${str.replace(/```/g, '\\`\\`\\`')}\n\`\`\``;
 const log = str => console.log(`[${new Date()}] ${str}`);
 const ping = require('util').promisify(require('minecraft-protocol').ping);
 const exec = (obj, func = 'send') => {
