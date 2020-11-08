@@ -31,7 +31,7 @@ const checkHealth = async () => {
 	const health = mc.health;
 	const food = mc.food;
 	if (!mc || Number.isNaN(parseInt(health)) || Number.isNaN(parseInt(food))) return;
-	if (mc.health > 19 && mc.food > 8) return;
+	if (health > 19 && food > 8) return;
 
 	try {
 		await exec({
