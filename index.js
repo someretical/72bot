@@ -362,8 +362,11 @@ const login = async () => {
 				lock = false;
 
 				if (connected) mc.quit();
-				if (timeout) clearTimeout(timeout);
-				connectToHost();
+
+				setTimeout(() => {
+					if (timeout) clearTimeout(timeout);
+					connectToHost();
+				}, 5000);
 				return;
 			} else if (cmd === 'eval') {
 				if (msg.author.id !== ownerID) {
