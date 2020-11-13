@@ -151,6 +151,20 @@ const connectToHost = async () => {
 
 		const message = str.match(/^<(\w{1,16})> (.+)$/) || [];
 		if (message[2]) {
+			if (message[1] === '72HoursOfShame' && /^!(?:xp|experience)$/i.test(message[2])) {
+				if (!mc.experience ||
+					Number.isNaN(parseInt(mc.experience.level)) || Number.isNaN(parseInt(mc.experience.points))) {
+					mc.chat('Could not access mc.experience object or its properties!');
+					return;
+				}
+
+				mc.chat(tags.oneLine`
+					Current level: ${mc.experience.level.toLocaleString()} 
+					(${(mc.experience.progress * 100).toFixed(2)}% complete) - 
+					Total experience points: ${mc.experience.points.toLocaleString()}
+				`);
+			}
+
 			try {
 				await exec({
 					embeds: [new MessageEmbed().setDescription(codeBlock(message[2]))
