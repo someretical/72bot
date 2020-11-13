@@ -114,7 +114,18 @@ const connectToHost = async () => {
 	mc.on('login', async () => {
 		log(`Logged into ${process.env.MC_HOST} as ${mc.username}.`);
 		connected = true;
-		dcLock = false;
+
+		if (dcLock) {
+			dcLock = false;
+
+			try {
+				const dm = await bot.users.cache.get(ownerID).createDM();
+
+				dm.send(`${process.env.MC_HOST} is back online.`);
+			} catch (e) {
+				log(e);
+			}
+		}
 
 		try {
 			await exec({
