@@ -115,6 +115,8 @@ const connectToHost = async () => {
 		log(`Logged into ${process.env.MC_HOST} as ${mc.username}.`);
 		connected = true;
 
+		mc.chat('logged back in thanks to the power of theoretical spaghetti code');
+
 		if (dcLock) {
 			dcLock = false;
 
