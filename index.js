@@ -166,7 +166,7 @@ const connectToHost = async () => {
 		const str = d.toString().trim();
 		if (!str) return;
 
-		const joinLeave = str.match(/^\w{1,16} (?:joined|left) the game$/) || [];
+		const joinLeave = str.match(/^\w{3,16} (?:joined|left) the game$/) || [];
 		if (joinLeave.length) {
 			try {
 				await exec({
@@ -179,7 +179,7 @@ const connectToHost = async () => {
 			return;
 		}
 
-		const message = str.match(/^<(\w{1,16})> (.+)$/) || [];
+		const message = str.match(/^<(\w{3,16})> (.+)$/) || [];
 		if (message[2]) {
 			if (message[1] === '72HoursOfShame' && /^!(?:xp|experience)$/i.test(message[2])) {
 				if (!mc.experience ||
@@ -218,11 +218,13 @@ const connectToHost = async () => {
 			return;
 		}
 
+		const colour = /^(?:\w{3,16} whispers: (.+)|To \w{3,16}: (.+))$/.test(str) ? [255, 0, 255] : [0, 170, 170];
+
 		try {
 			await exec({
 				embeds: [new MessageEmbed()
 					.setDescription(codeBlock(str))
-					.setColor([0, 170, 170])],
+					.setColor(colour)],
 				username: process.env.MC_HOST,
 			});
 		} catch (e) {
