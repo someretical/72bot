@@ -28,26 +28,43 @@ let mc,
 
 
 const checkHealth = async () => {
-	const health = mc.health;
-	const food = mc.food;
+	const health = mc.health, food = mc.food, player = mc.player, players = mc.players;
 	if (!mc || Number.isNaN(parseInt(health)) || Number.isNaN(parseInt(food))) return;
 	if (health > 19 && food > 8) return;
+
+	const otherPlayers = [...players.keys()]
+		.filter(username => username !== player.username);
+
+	log(`Logged out at ${health} HP and ${food} hunger!`);
+	log(`Players in render distance: ${otherPlayers.join(', ')}`);
+	lock = true;
+	mc.quit();
 
 	try {
 		await exec({
 			embeds: [new MessageEmbed()
 				.setDescription(`Quitting with ${health} HP and ${food} hunger.`)
 				.setColor('RED')],
-			username: mc.username,
-			avatarURL: `http://cravatar.eu/helmhead/${mc.username}/256.png`,
+			username: player.username,
+			avatarURL: `http://cravatar.eu/helmhead/${player.username}/256.png`,
 		});
+
+		const chunks = Array(Math.ceil(otherPlayers.length / 100))
+			.fill()
+			.map((_, i) => otherPlayers.slice(i * 100, (i * 100) + 100));
+
+		chunks.map(chunk => exec({
+			embeds: [new MessageEmbed()
+				.setTitle('Player(s) currently within render distance')
+				.setDescription(chunk.join(', '))
+				.setColor('RED'),
+			],
+			username: player.username,
+			avatarURL: `http://cravatar.eu/helmhead/${player.username}/256.png`,
+		}));
 	} catch (e) {
 		log(e);
 	}
-
-	log(`Logged out at ${health} HP and ${food} hunger!`);
-	lock = true;
-	mc.quit();
 };
 
 const makeResultMessages = (result, hrDiff, input = null) => {
