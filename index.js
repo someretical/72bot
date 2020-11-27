@@ -28,12 +28,13 @@ let mc,
 
 
 const checkHealth = async () => {
-	const health = mc.health, food = mc.food, player = mc.player, players = mc.players;
+	const health = mc.health, food = mc.food, player = mc.player, entities = mc.entities;
 	if (!mc || Number.isNaN(parseInt(health)) || Number.isNaN(parseInt(food))) return;
 	if (health > 19 && food > 8) return;
 
-	const otherPlayers = [...players.keys()]
-		.filter(username => username !== player.username);
+	const otherPlayers = Object.values(entities)
+		.filter(e => e.type === 'player' && e.username !== player.username)
+		.map(e => e.username);
 
 	log(`Logged out at ${health} HP and ${food} hunger!`);
 	log(`Players in render distance: ${otherPlayers.join(', ')}`);
@@ -222,9 +223,7 @@ const connectToHost = async () => {
 
 		try {
 			await exec({
-				embeds: [new MessageEmbed()
-					.setDescription(codeBlock(str))
-					.setColor(colour)],
+				embeds: [new MessageEmbed().setDescription(codeBlock(str)).setColor(colour)],
 				username: process.env.MC_HOST,
 			});
 		} catch (e) {
