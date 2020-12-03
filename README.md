@@ -13,6 +13,7 @@ DISCORD_TOKEN=
 DISCORD_PREFIX=.
 
 # minecraft
+MC_MESSAGES=[]
 MC_HOST=constantiam.net
 MC_HOST_IMG=https://constantiam.net/favicon/android-icon-192x192.png
 MC_EMAIL=

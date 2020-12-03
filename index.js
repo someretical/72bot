@@ -7,6 +7,7 @@ const mineflayer = require('mineflayer');
 const users = new Set(JSON.parse(process.env.WHITELISTED_USERS));
 const channels = new Set(JSON.parse(process.env.WHITELISTED_CHANNELS));
 const hooks = JSON.parse(process.env.WEBHOOKS).map(hook => new WebhookClient(hook.id, hook.token));
+const messages = JSON.parse(process.env.MC_MESSAGES);
 
 const codeBlock = str => `\`\`\`\n${str.replace(/```/g, '\\`\\`\\`')}\n\`\`\``;
 const log = str => console.log(`[${new Date()}] ${str}`);
@@ -24,8 +25,22 @@ let mc,
 	connected = false,
 	lock = false,
 	dcLock = false,
-	lastResult = null;
+	lastResult = null,
+	previousIndex = 0;
 
+const getIndex = () => {
+	const index = Math.floor(Math.random() * messages.length);
+	return index === previousIndex ? getIndex() : index;
+};
+
+const sendMessage = () => {
+	const index = getIndex();
+
+	previousIndex = index;
+	if (mc) mc.chat(messages[index]);
+
+	setTimeout(sendMessage, 450000);
+};
 
 const checkHealth = async () => {
 	const health = mc.health, food = mc.food, player = mc.player, entities = mc.entities;
@@ -157,6 +172,12 @@ const connectToHost = async () => {
 			});
 		} catch (e) {
 			log(e);
+		}
+
+		if (messages.length) {
+			setTimeout(() => {
+				sendMessage();
+			}, 300000);
 		}
 	});
 
