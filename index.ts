@@ -99,7 +99,7 @@ const codeBlock = (str: string, lang = '') =>
 	`\`\`\`${lang}\n${str.replace(/```/g, '\\`\\`\\`')}\n\`\`\``;
 
 const getPlayerHead = (username: string) =>
-	`https://mc-heads.net/head/${username}`;
+	`https://mc-heads.net/avatar/${username}`;
 
 const sendWebhookMessage = (
 	text: string,

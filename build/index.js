@@ -62,7 +62,7 @@ const editWebhooks = (obj) => {
     return Promise.all(promises);
 };
 const codeBlock = (str, lang = '') => `\`\`\`${lang}\n${str.replace(/```/g, '\\`\\`\\`')}\n\`\`\``;
-const getPlayerHead = (username) => `https://mc-heads.net/head/${username}`;
+const getPlayerHead = (username) => `https://mc-heads.net/avatar/${username}`;
 const sendWebhookMessage = (text, colour = 'BLURPLE', username = constants_1.mcServerAddress, avatarURL = constants_1.mcServerImage) => {
     const promises = [];
     webhooks.map(hook => promises.push(hook.send(new discord_js_1.MessageEmbed()
