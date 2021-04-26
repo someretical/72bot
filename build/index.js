@@ -41,30 +41,43 @@ const makeResultMessages = (result, hrDiff, input) => {
 			`, { maxLength: 1900, prepend, append });
     }
     return discord_js_1.Util.splitMessage(common_tags_1.stripIndents `
-				*Callback executed after ${hrDiff[0] > 0 ? `${hrDiff[0]}s ` : ''}${hrDiff[1] / 1000000}ms.*
-				\`\`\`js
-				${inspected}
-				\`\`\`
+			*Callback executed after ${hrDiff[0] > 0 ? `${hrDiff[0]}s ` : ''}${hrDiff[1] / 1000000}ms.*
+			\`\`\`js
+			${inspected}
+			\`\`\`
 			`, { maxLength: 1900, prepend, append });
 };
-const mapWebhooks = (obj, func = 'send') => {
+// For old merged function, see https://www.typescriptlang.org/docs/handbook/release-notes/typescript-1-6.html#user-defined-type-guard-functions
+// const mapWebhooks = (
+// 	obj: WebhookEditData | WebhookMessageOptions,
+// 	func: 'send' | 'edit' = 'send'
+// ) => {
+// 	const promises: Array<Promise<Webhook | Message>> = [];
+// 	webhooks.map(hook => promises.push(hook[func](obj)));
+// 	return Promise.all(promises);
+// };
+const editWebhooks = (obj) => {
     const promises = [];
-    webhooks.map(hook => promises.push(hook[func](obj)));
+    webhooks.map(hook => promises.push(hook.edit(obj)));
     return Promise.all(promises);
 };
-const codeBlock = (str) => `\`\`\`\n${str.replace(/```/g, '\\`\\`\\`')}\n\`\`\``;
-const getPlayerHead = (username) => `http://cravatar.eu/helmhead/${username}`;
-const createWebhookMessage = (text, colour = 'BLURPLE', username = constants_1.mcServerAddress, avatarURL = constants_1.mcServerImage) => {
-    return new discord_js_1.MessageEmbed()
+const codeBlock = (str, lang = '') => `\`\`\`${lang}\n${str.replace(/```/g, '\\`\\`\\`')}\n\`\`\``;
+const getPlayerHead = (username) => `https://mc-heads.net/head/${username}`;
+const sendWebhookMessage = (text, colour = 'BLURPLE', username = constants_1.mcServerAddress, avatarURL = constants_1.mcServerImage) => {
+    const promises = [];
+    webhooks.map(hook => promises.push(hook.send(new discord_js_1.MessageEmbed()
         .setAuthor(username, avatarURL)
         .setDescription(codeBlock(text))
-        .setColor(colour);
+        .setColor(colour))));
+    return Promise.all(promises);
 };
 const createWebhooks = () => {
-    const data = process.env.WEBHOOKS.split(',').map(str => str.split(':'));
+    const data = (process.env.WEBHOOKS || '')
+        .split(',')
+        .map(str => str.split(':'));
     for (const obj of data)
         webhooks.set(obj[0], new discord_js_1.WebhookClient(obj[0], obj[1]));
-    return mapWebhooks({ name: constants_1.mcServerAddress, avatar: constants_1.mcServerImage }, 'edit');
+    return editWebhooks({ name: constants_1.mcServerAddress, avatar: constants_1.mcServerImage });
 };
 const checkServerStatus = util_1.default.promisify(minecraft_protocol_1.ping);
 const checkHealth = async () => {
@@ -88,18 +101,18 @@ const checkHealth = async () => {
     console.log(`Autolog triggered at ${health} HP and ${food} hunger points.\n\nPlayers in render distance: ${otherPlayers
         .map(u => `\`${u}\``)
         .join(', ')}`);
-    await mapWebhooks(createWebhookMessage(`Autolog triggered at ${health} HP and ${food} hunger points.\n\nPlayers in render distance: ${otherPlayers
+    await sendWebhookMessage(`Autolog triggered at ${health} HP and ${food} hunger points.\n\nPlayers in render distance: ${otherPlayers
         .map(u => `\`${u}\``)
-        .join(', ')}`, 'RED', player.username, getPlayerHead(player.username)));
+        .join(', ')}`, 'RED', player.username, getPlayerHead(player.username));
 };
 const connectToMinecraft = async () => {
     if (locked) {
         console.log('Not reconnecting due to lock');
-        return mapWebhooks(createWebhookMessage('The bot has been locked. Use the reconnect command to reconnect to the server.'));
+        return sendWebhookMessage('The bot has been locked. Use the reconnect command to reconnect to the server.');
     }
     if (!disconnectLocked) {
         console.log(`Connecting to ${constants_1.mcServerAddress}`);
-        await mapWebhooks(createWebhookMessage(`Connecting to ${constants_1.mcServerAddress}...`));
+        await sendWebhookMessage(`Connecting to ${constants_1.mcServerAddress}...`);
     }
     try {
         await checkServerStatus({ host: constants_1.mcServerAddress });
@@ -108,7 +121,7 @@ const connectToMinecraft = async () => {
         if (!disconnectLocked) {
             console.log(`${constants_1.mcServerAddress} is down`);
             console.log('Setting reconnect timeout of 10000ms');
-            await mapWebhooks(createWebhookMessage(`${constants_1.mcServerAddress} is down, the bot will reconnect in the background.`, 'RED'));
+            await sendWebhookMessage(`${constants_1.mcServerAddress} is down, the bot will reconnect in the background.`, 'RED');
         }
         disconnectLocked = true;
         clearTimeout(reconnectTimeout);
@@ -125,7 +138,7 @@ const connectToMinecraft = async () => {
         connected = true;
         disconnectLocked = false;
         console.log('Spawned into minecraft world');
-        await mapWebhooks(createWebhookMessage(`Logged into ${constants_1.mcServerAddress} as ${mcClient.player.username}`, 'BLURPLE', mcClient.player.username, getPlayerHead(mcClient.player.username)));
+        await sendWebhookMessage(`Logged into ${constants_1.mcServerAddress} as ${mcClient.player.username}`, 'BLURPLE', mcClient.player.username, getPlayerHead(mcClient.player.username));
         checkHealth();
     });
     mcClient.on('health', checkHealth);
@@ -135,28 +148,28 @@ const connectToMinecraft = async () => {
             return undefined;
         const joinLeave = message.match(/^\w{3,16} (?:joined|left) the game$/) || [];
         if (joinLeave.length)
-            return mapWebhooks(createWebhookMessage(message, 'GREY'));
+            return sendWebhookMessage(message, 'GREY');
         const parsedMessage = message.match(/^<(\w{3,16})> (.+)$/) || [];
         if (parsedMessage[2]) {
-            if (constants_1.whitelistedUsernames.includes(parsedMessage[1])) {
-                // command stuff
-            }
-            return mapWebhooks(createWebhookMessage(parsedMessage[2], /^>/.test(parsedMessage[2]) ? 'GREEN' : [254, 254, 254], parsedMessage[1], getPlayerHead(parsedMessage[1])));
+            // if (whitelistedUsernames.includes(parsedMessage[1])) {
+            // 	// command stuff
+            // }
+            return sendWebhookMessage(parsedMessage[2], /^>/.test(parsedMessage[2]) ? 'GREEN' : [254, 254, 254], parsedMessage[1], getPlayerHead(parsedMessage[1]));
         }
         const server = message.match(/^\[server\] (.+)$/i) || [];
         if (server[1])
-            return mapWebhooks(createWebhookMessage(server[1], 'ORANGE'));
+            return sendWebhookMessage(server[1], 'ORANGE');
         const colour = /^(?:\w{3,16} whispers: (.+)|To \w{3,16}: (.+))$/.test(message)
             ? [255, 0, 255]
             : [0, 170, 170];
-        return mapWebhooks(createWebhookMessage(message, colour));
+        return sendWebhookMessage(message, colour);
     });
     mcClient.on('end', () => {
         connected = false;
         if (!disconnectLocked) {
             console.log(`Disconnected from ${constants_1.mcServerAddress}`);
             console.log('Setting reconnect timeout of 10000ms');
-            mapWebhooks(createWebhookMessage(`Disconnected from ${constants_1.mcServerAddress}.`, 'BLURPLE', mcClient.player.username, getPlayerHead(mcClient.player.username)));
+            sendWebhookMessage(`Disconnected from ${constants_1.mcServerAddress}.`, 'BLURPLE');
         }
         if (reconnectTimeout)
             clearTimeout(reconnectTimeout);
@@ -167,9 +180,10 @@ const connectToMinecraft = async () => {
 discordClient.on('ready', async () => {
     console.log('Logged into Discord bot');
     const { owner } = await discordClient.fetchApplication();
-    ownerID = owner.id;
+    ownerID = (owner === null || owner === void 0 ? void 0 : owner.id) || '';
 });
 discordClient.on('message', async (message) => {
+    var _a, _b, _c;
     const { author, content, channel } = message;
     if (!constants_1.whitelistedChannels.includes(channel.id) || author.bot)
         return undefined;
@@ -181,7 +195,7 @@ discordClient.on('message', async (message) => {
 					=== Help doc ===
 
 					[ Global command list ]
-					${constants_1.discordPrefix}ping       :: printthe bot's ping
+					${constants_1.discordPrefix}ping       :: print the bot's ping
 					${constants_1.discordPrefix}tab        :: print the server's tab list
 					${constants_1.discordPrefix}entitylist :: list all entities within the bot's render distance
 					${constants_1.discordPrefix}xp         :: print the bot's XP stats
@@ -197,12 +211,12 @@ discordClient.on('message', async (message) => {
 				`);
         }
         else if (cmd === 'ping') {
-            if (mcClient?.player?.ping)
+            if ((_a = mcClient === null || mcClient === void 0 ? void 0 : mcClient.player) === null || _a === void 0 ? void 0 : _a.ping)
                 return channel.send(`Current ping: ${mcClient.player.ping}ms`);
-            return channel.send('Could not access `mc.player.ping` property!');
+            return channel.send('Could not access ping data!');
         }
         else if (cmd === 'tab') {
-            if (mcClient?.players) {
+            if (mcClient === null || mcClient === void 0 ? void 0 : mcClient.players) {
                 const players = Object.keys(mcClient.players)
                     .map(p => `\`${p}\``)
                     .sort();
@@ -220,10 +234,10 @@ discordClient.on('message', async (message) => {
                     return channel.send(embed);
                 });
             }
-            return channel.send('Could not access `mc.players` object!');
+            return channel.send('Could not access players object!');
         }
         else if (cmd === 'entitylist') {
-            if (mcClient?.entities) {
+            if (mcClient === null || mcClient === void 0 ? void 0 : mcClient.entities) {
                 const entities = {};
                 const entityList = Object.values(mcClient.entities);
                 if (!entityList.length)
@@ -255,11 +269,11 @@ discordClient.on('message', async (message) => {
                     return channel.send(embed);
                 });
             }
-            return channel.send('Could not access `mc.entities` object!');
+            return channel.send('Could not access entities object!');
         }
         else if (cmd === 'xp') {
-            if (Number.isNaN(mcClient?.experience?.level) ||
-                Number.isNaN(mcClient?.experience?.points))
+            if (Number.isNaN((_b = mcClient === null || mcClient === void 0 ? void 0 : mcClient.experience) === null || _b === void 0 ? void 0 : _b.level) ||
+                Number.isNaN((_c = mcClient === null || mcClient === void 0 ? void 0 : mcClient.experience) === null || _c === void 0 ? void 0 : _c.points))
                 return channel.send('Could not access `mc.experience` object or its properties!');
             const percent = (mcClient.experience.progress * 100).toFixed(2);
             const embed = new discord_js_1.MessageEmbed()
@@ -276,7 +290,7 @@ discordClient.on('message', async (message) => {
 					${connected ? '++' : '--'} connected
 					${disconnectLocked ? '++' : '--'} disconnectedLock
 					${locked ? '++' : '--'} locked
-				`));
+				`, 'diff'));
         }
         else if (cmd === 'lock') {
             if (author.id !== ownerID)
@@ -295,10 +309,6 @@ discordClient.on('message', async (message) => {
             console.log('Reconnecting via chat command');
             if (connected)
                 mcClient.quit();
-            console.log('Setting reconnect timeout of 5000ms');
-            if (reconnectTimeout)
-                clearTimeout(reconnectTimeout);
-            reconnectTimeout = setTimeout(connectToMinecraft, 5000);
             return undefined;
         }
         else if (cmd === 'eval') {
