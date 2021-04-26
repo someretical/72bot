@@ -6,16 +6,10 @@ Feel free to self host if you know how to make it work
 ## Environment configuration values
 ```ini
 # discord
-WEBHOOKS=[{"id":"","token":""}]
-WHITELISTED_CHANNELS=["746240721085792357","747374375694762005"]
-WHITELISTED_USERS=[]
+WEBHOOKS=id:token,id2:token2
 DISCORD_TOKEN=
-DISCORD_PREFIX=.
 
 # minecraft
-MC_MESSAGES=[]
-MC_HOST=constantiam.net
-MC_HOST_IMG=https://constantiam.net/favicon/android-icon-192x192.png
 MC_EMAIL=
 MC_PWD=
 ```

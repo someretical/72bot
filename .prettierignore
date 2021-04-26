@@ -1,0 +1,10 @@
+data/
+README.md
+
+*.js
+
+.env
+.eslintrc
+.gitignore
+.prettierignore
+.prettierrc
