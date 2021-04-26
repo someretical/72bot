@@ -10,5 +10,5 @@ exports.whitelistedUsernames = [
 ];
 exports.mcServerAddress = 'constantiam.net';
 exports.mcServerImage = 'https://constantiam.net/favicon/android-icon-192x192.png';
-exports.discordPrefix = '.';
-exports.mcPrefix = '!';
+exports.discordPrefix = ',';
+exports.mcPrefix = '+';

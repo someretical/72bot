@@ -13,6 +13,6 @@ export const mcServerAddress = 'constantiam.net';
 export const mcServerImage =
 	'https://constantiam.net/favicon/android-icon-192x192.png';
 
-export const discordPrefix = '.';
+export const discordPrefix = ',';
 
-export const mcPrefix = '!';
+export const mcPrefix = '+';
