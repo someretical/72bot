@@ -479,7 +479,10 @@ discordClient.on('message', message => {
 			console.log('Reconnecting via chat command');
 
 			if (connected) mcClient.quit();
-			else connectToMinecraft();
+			else {
+				clearTimeout(reconnectTimeout);
+				connectToMinecraft();
+			}
 
 			return undefined;
 		} else if (cmd === 'eval') {

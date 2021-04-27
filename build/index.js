@@ -194,7 +194,7 @@ discordClient.on('ready', async () => {
     const { owner } = await discordClient.fetchApplication();
     ownerID = (owner === null || owner === void 0 ? void 0 : owner.id) || '';
 });
-discordClient.on('message', async (message) => {
+discordClient.on('message', message => {
     var _a, _b, _c;
     const { author, content, channel } = message;
     if (!constants_1.whitelistedChannels.includes(channel.id) || author.bot)
@@ -314,8 +314,10 @@ discordClient.on('message', async (message) => {
             console.log('Reconnecting via chat command');
             if (connected)
                 mcClient.quit();
-            else
+            else {
+                clearTimeout(reconnectTimeout);
                 connectToMinecraft();
+            }
             return undefined;
         }
         else if (cmd === 'eval') {
