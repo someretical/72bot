@@ -1,5 +1,5 @@
 import util from 'util';
-import { stripIndents } from 'common-tags';
+import { oneLine, stripIndents } from 'common-tags';
 import {
 	Client,
 	Collection,
@@ -101,6 +101,9 @@ const codeBlock = (str: string, lang = '') =>
 const getPlayerHead = (username: string) =>
 	`https://mc-heads.net/avatar/${username}`;
 
+const embedDescription = (text: string, colour: ColorResolvable = 'ORANGE') =>
+	new MessageEmbed().setColor(colour).setDescription(text);
+
 const sendWebhookMessage = (
 	text: string,
 	colour: ColorResolvable = 'BLURPLE',
@@ -122,7 +125,7 @@ const sendWebhookMessage = (
 	return Promise.all(promises);
 };
 
-const createWebhooks = () => {
+const createWebhooks = async () => {
 	const data = (process.env.WEBHOOKS || '')
 		.split(',')
 		.map(str => str.split(':'));
@@ -130,7 +133,9 @@ const createWebhooks = () => {
 	for (const obj of data)
 		webhooks.set(obj[0], new WebhookClient(obj[0], obj[1]));
 
-	return editWebhooks({ name: mcServerAddress, avatar: mcServerImage });
+	await editWebhooks({ name: mcServerAddress, avatar: mcServerImage });
+
+	return console.log('Loaded all webhooks');
 };
 
 const checkServerStatus = util.promisify(ping);
@@ -246,9 +251,35 @@ const connectToMinecraft = async () => {
 
 		const parsedMessage = message.match(/^<(\w{3,16})> (.+)$/) || [];
 		if (parsedMessage[2]) {
-			// if (whitelistedUsernames.includes(parsedMessage[1])) {
-			// 	// command stuff
-			// }
+			const command = parsedMessage[2].slice(1);
+
+			if (
+				whitelistedUsernames.includes(parsedMessage[1]) &&
+				parsedMessage[2][0] === mcPrefix
+			) {
+				if (command === 'help') {
+					mcClient.chat(
+						`Command prefix: '${mcPrefix}', Commands: ping, xp, var`
+					);
+				} else if (command === 'ping') {
+					mcClient.chat(`Current ping: ${mcClient.player.ping || '0'}ms`);
+				} else if (command === 'xp') {
+					const percent = (mcClient.experience.progress * 100).toFixed(2);
+
+					mcClient.chat(
+						oneLine`
+							Current level: ${mcClient.experience.level.toLocaleString()} (${percent} complete)
+							Total experience points: ${mcClient.experience.points.toLocaleString()}
+						`
+					);
+				} else if (command === 'var') {
+					mcClient.chat(oneLine`
+						connected: ${connected ? '1' : '0'}, disconnectLocked: ${
+						disconnectLocked ? '1' : '0'
+					}, locked: ${locked ? '1' : '0'}
+					`);
+				}
+			}
 
 			return sendWebhookMessage(
 				parsedMessage[2],
@@ -325,24 +356,25 @@ discordClient.on('message', async message => {
 				`);
 		} else if (cmd === 'ping') {
 			if (mcClient?.player?.ping)
-				return channel.send(`Current ping: ${mcClient.player.ping}ms`);
-			return channel.send('Could not access ping data!');
+				return channel.send(
+					embedDescription(`Current ping: \`${mcClient.player.ping}ms\``)
+				);
+			return channel.send(embedDescription('Could not access ping data!'));
 		} else if (cmd === 'tab') {
 			if (mcClient?.players) {
 				const players = Object.keys(mcClient.players)
 					.map(p => `\`${p}\``)
 					.sort();
 
-				if (!players.length) return channel.send('No players were found.');
+				if (!players.length)
+					return channel.send(embedDescription('No players were found.'));
 
 				const chunks = Array(Math.ceil(players.length / 100))
 					.fill(0)
 					.map((_, i) => players.slice(i * 100, i * 100 + 100));
 
 				return chunks.map((chunk, index) => {
-					const embed = new MessageEmbed()
-						.setDescription(chunk.join(', '))
-						.setColor('ORANGE');
+					const embed = embedDescription(chunk.join(', '));
 
 					if (index === 0)
 						embed.setTitle(`Tab list - ${players.length} player(s)`);
@@ -350,13 +382,14 @@ discordClient.on('message', async message => {
 					return channel.send(embed);
 				});
 			}
-			return channel.send('Could not access players object!');
+			return channel.send(embedDescription('Could not access players object!'));
 		} else if (cmd === 'entitylist') {
 			if (mcClient?.entities) {
 				const entities: Record<string, number> = {};
 				const entityList = Object.values(mcClient.entities);
 
-				if (!entityList.length) return channel.send('No entities were found.');
+				if (!entityList.length)
+					return channel.send(embedDescription('No entities were found.'));
 
 				entityList.forEach(e => {
 					const t =
@@ -386,9 +419,7 @@ discordClient.on('message', async message => {
 					.map((_, i) => formatted.slice(i * 15, i * 15 + 15));
 
 				return chunks.map((chunk, index) => {
-					const embed = new MessageEmbed()
-						.setDescription(chunk.join('\n'))
-						.setColor('ORANGE');
+					const embed = embedDescription(chunk.join('\n'));
 
 					if (index === 0)
 						embed.setTitle(`Entity list - ${entityList.length} entity(s)`);
@@ -396,41 +427,39 @@ discordClient.on('message', async message => {
 					return channel.send(embed);
 				});
 			}
-			return channel.send('Could not access entities object!');
+			return channel.send(
+				embedDescription('Could not access entities object!')
+			);
 		} else if (cmd === 'xp') {
 			if (
 				Number.isNaN(mcClient?.experience?.level) ||
 				Number.isNaN(mcClient?.experience?.points)
 			)
 				return channel.send(
-					'Could not access `mc.experience` object or its properties!'
+					embedDescription('Could not access experience data!')
 				);
 
 			const percent = (mcClient.experience.progress * 100).toFixed(2);
-			const embed = new MessageEmbed()
-				.setTitle('XP Stats')
-				.setDescription(
-					stripIndents`
-							• Current level: ${mcClient.experience.level.toLocaleString()} (${percent}% complete)
-							• Total experience points: ${mcClient.experience.points.toLocaleString()}
-						`
-				)
-				.setColor('ORANGE');
 
-			return channel.send(embed);
+			return channel.send(
+				embedDescription(stripIndents`
+					• Current level: \`${mcClient.experience.level.toLocaleString()}\` (\`${percent}%\` complete)
+					• Total experience points: \`${mcClient.experience.points.toLocaleString()}\`
+			`)
+			);
 		} else if (cmd === 'var') {
 			return channel.send(
-				codeBlock(
-					stripIndents`
-					${connected ? '++' : '--'} connected
-					${disconnectLocked ? '++' : '--'} disconnectedLock
-					${locked ? '++' : '--'} locked
-				`,
-					'diff'
-				)
+				embedDescription(stripIndents`
+				\`\`\`diff
+				${connected ? '+' : '-'} connected
+				${disconnectLocked ? '+' : '-'} disconnectedLock
+				${locked ? '+' : '-'} locked
+				\`\`\`
+			`)
 			);
 		} else if (cmd === 'lock') {
-			if (author.id !== ownerID) return channel.send('Permission denied.');
+			if (author.id !== ownerID)
+				return channel.send(embedDescription('Permission denied.'));
 
 			locked = true;
 			if (connected) mcClient.quit();
@@ -438,14 +467,17 @@ discordClient.on('message', async message => {
 			console.log('Locked bot via chat command');
 
 			return channel.send(
-				'Locked the bot, it should now disconnect (given that it is connected).'
+				embedDescription(
+					'Locked the bot, it should now disconnect (given that it is connected).'
+				)
 			);
 		} else if (cmd === 'reconnect') {
-			if (author.id !== ownerID) return channel.send('Permission denied.');
+			if (author.id !== ownerID)
+				return channel.send(embedDescription('Permission denied.'));
 
 			locked = false;
 
-			await channel.send('Reconnecting...');
+			await channel.send(embedDescription('Reconnecting...'));
 
 			console.log('Reconnecting via chat command');
 
@@ -453,7 +485,8 @@ discordClient.on('message', async message => {
 
 			return undefined;
 		} else if (cmd === 'eval') {
-			if (author.id !== ownerID) return channel.send('Permission denied.');
+			if (author.id !== ownerID)
+				return channel.send(embedDescription('Permission denied.'));
 
 			const code = content.slice(discordPrefix.length + 4);
 			let hrDiff;
@@ -472,13 +505,15 @@ discordClient.on('message', async message => {
 		}
 	}
 
+	if (!whitelistedUsers.includes(author.id) && author.id !== ownerID)
+		return channel.send(
+			embedDescription('You have to be whitelisted to send a message!')
+		);
+
 	if (!connected) return message.react('❌');
 
-	if (!whitelistedUsers.includes(author.id) && author.id !== ownerID)
-		return channel.send('You have to be whitelisted to send a message!');
-
 	if (/^\/kill/i.test(content) && author.id !== ownerID)
-		return channel.send('Permission denied.');
+		return channel.send(embedDescription('Permission denied.'));
 
 	mcClient.chat(content);
 	return message.react('✅');
@@ -486,10 +521,7 @@ discordClient.on('message', async message => {
 
 const init = async () => {
 	await createWebhooks();
-	console.log('Loaded all webhooks');
-
 	await discordClient.login();
-
 	await connectToMinecraft();
 };
 
