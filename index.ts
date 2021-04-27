@@ -327,7 +327,7 @@ discordClient.on('ready', async () => {
 	ownerID = owner?.id || '';
 });
 
-discordClient.on('message', async message => {
+discordClient.on('message', message => {
 	const { author, content, channel } = message;
 	if (!whitelistedChannels.includes(channel.id) || author.bot) return undefined;
 
@@ -476,12 +476,10 @@ discordClient.on('message', async message => {
 				return channel.send(embedDescription('Permission denied.'));
 
 			locked = false;
-
-			await channel.send(embedDescription('Reconnecting...'));
-
 			console.log('Reconnecting via chat command');
 
 			if (connected) mcClient.quit();
+			else connectToMinecraft();
 
 			return undefined;
 		} else if (cmd === 'eval') {

@@ -311,10 +311,11 @@ discordClient.on('message', async (message) => {
             if (author.id !== ownerID)
                 return channel.send(embedDescription('Permission denied.'));
             locked = false;
-            await channel.send(embedDescription('Reconnecting...'));
             console.log('Reconnecting via chat command');
             if (connected)
                 mcClient.quit();
+            else
+                connectToMinecraft();
             return undefined;
         }
         else if (cmd === 'eval') {
